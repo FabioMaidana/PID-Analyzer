@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}Etapa 1: Modelagem da Planta{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-slate-800">Etapa 1: Modelagem da Planta G(s)</h1>
+        <p class="mt-2 text-slate-800">Forneça o modelo da sua planta por um dos dois métodos abaixo.</p>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-100 border-l-4 border-red-800 text-red-900 p-4 rounded-md my-6" role="alert">
+        <p class="font-bold">Ocorreu um erro</p>
+        <p>{{ error|replace('\n', '<br>')|safe }}</p>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/modelagem" class="mt-8 space-y-8" onsubmit="showLoading()">
+        <div class="card p-8">
+            <h2 class="text-2xl font-bold text-slate-800">Método 1: Experimental (A partir de dados coletados)</h2>
+            <p class="text-slate-800 mt-1">Use este método se você coletou dados de resposta ao degrau do seu sistema.</p>
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="dados" class="block text-sm font-medium text-gray-900">Dados da Resposta ao Degrau (separados por espaço)</label>
+                    <textarea id="dados" name="dados" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm" placeholder="Ex: 0,1 0,3 0,5 0,7 0,9 1,0 ..."></textarea>
+                </div>
+                <div>
+                    <label for="intervalo" class="block text-sm font-medium text-gray-900">Intervalo de Amostragem (segundos)</label>
+                    <input type="text" id="intervalo" name="intervalo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm" placeholder="Ex: 0,5">
+                    <p class="mt-2 text-xs text-gray-800">Obrigatório apenas para o Método 1.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-gray-800 font-bold">OU</div>
+
+        <div class="card p-8">
+            <h2 class="text-2xl font-bold text-slate-800">Método 2: Teórico (A partir do modelo matemático)</h2>
+            <p class="text-slate-800 mt-1">Use este método se você já conhece o modelo matemático do sistema.</p>
+            <div class="mt-6">
+                <label for="funcao_transf" class="block text-sm font-medium text-gray-900">Função de Transferência G(s)</label>
+                <input type="text" id="funcao_transf" name="funcao_transf" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm" placeholder="Ex: 1/(s^2+0,5*s+1)">
+                <p class="mt-2 text-xs text-gray-800">Use a sintaxe: <code>(s+1)/(s^2+3*s+2)</code>. Potências com <code>^</code>, ex: <code>s^2</code>.</p>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="w-full md:w-auto flex justify-center py-3 px-8 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-green-800 hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-800 transition-colors">
+                Validar Modelo da Planta
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

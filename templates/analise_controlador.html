@@ -1,0 +1,545 @@
+{% extends "layout.html" %}
+
+{% block title %}Etapa 4: Dashboard PID{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-slate-800">Etapa 4: Dashboard de Simulação e Sintonia Fina</h1>
+        <p class="mt-2 text-slate-800">Ajuste os ganhos ou as metas de desempenho e observe o impacto na resposta em malha fechada.</p>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        <div class="lg:col-span-2 space-y-6">
+            
+            <a href="javascript:history.back()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-900 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="-ml-1 mr-2 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                Voltar à Etapa 3 (LGR)
+            </a>
+
+            <div class="card p-6 border-l-4 border-green-800 bg-green-50">
+                <h3 class="text-xl font-bold text-slate-800 mb-3">Diagnóstico da Sintonia Inicial</h3>
+                <div class="space-y-1 text-sm text-slate-900">
+                    <p>{{ diagnostico_sintonia|safe }}</p>
+                </div>
+            </div>
+            <div class="card p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Métricas de Desempenho (Malha Fechada)</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <label class="font-medium text-gray-800">Sobressinal (OS, %)</label>
+                        <input type="text" id="overshoot-percent" value="{{ overshoot_percent }}" readonly class="mt-1 w-full bg-slate-100 rounded-md border-slate-200 text-sm p-2">
+                    </div>
+                    <div>
+                        <label class="font-medium text-gray-800">Tempo de Subida (Tr, s)</label>
+                        <input type="text" id="rise-time" value="{{ rise_time }}" readonly class="mt-1 w-full bg-slate-100 rounded-md border-slate-200 text-sm p-2">
+                    </div>
+                    <div>
+                        <label class="font-medium text-gray-800">Tempo Acomod. (Ts, s)</label>
+                        <input type="text" id="settling-time" value="{{ settling_time }}" readonly class="mt-1 w-full bg-slate-100 rounded-md border-slate-200 text-sm p-2">
+                    </div>
+                     <div>
+                        <label class="font-medium text-gray-800">Erro Estacion. (Ess, %)</label>
+                        <input type="text" id="steady-error" value="{{ steady_state_error }}" readonly class="mt-1 w-full bg-slate-100 rounded-md border-slate-200 text-sm p-2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-white shadow rounded-lg overflow-hidden">
+                <div class="flex border-b border-gray-200">
+                    <button onclick="openTab('tab-manual', this)" class="tab-btn flex-1 py-3 px-4 text-sm font-medium text-green-800 border-b-2 border-green-800 focus:outline-none bg-green-50">
+                        Ajuste Manual
+                    </button>
+                    <button onclick="openTab('tab-assistido', this)" class="tab-btn flex-1 py-3 px-4 text-sm font-medium text-gray-500 hover:text-green-800 focus:outline-none">
+                        Ajuste Assistido
+                    </button>
+                    <button onclick="openTab('tab-filtro', this)" class="tab-btn flex-1 py-3 px-4 text-sm font-medium text-gray-500 hover:text-green-800 focus:outline-none">
+                        Filtro / Ruído
+                    </button>
+                </div>
+
+                <div class="p-6">
+        
+                    <div id="tab-manual" class="tab-content block">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">Ajuste Manual (Ganhos PID)</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="Kp" class="block text-sm font-medium text-gray-900">Kp (Ganho Proporcional)</label>
+                                <input type="text" id="Kp" value="{{ Kp_str }}" oninput="enviarDados('ganhos')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="Ki" class="block text-sm font-medium text-gray-900">Ki (Ganho Integral)</label>
+                                <input type="text" id="Ki" value="{{ Ki_str }}" oninput="enviarDados('ganhos')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="Kd" class="block text-sm font-medium text-gray-900">Kd (Ganho Derivativo)</label>
+                                <input type="text" id="Kd" value="{{ Kd_str }}" oninput="enviarDados('ganhos')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-assistido" class="tab-content hidden">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">Ajuste Assistido</h3>
+                        <p class="text-sm text-slate-800 -mt-2 mb-4">Defina uma meta e o sistema otimiza o ganho.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="OS" class="block text-sm font-medium text-gray-900">Meta de Sobressinal (OS, %)</label>
+                                <input type="text" id="OS" value="{{ OS }}" oninput="enviarDados('desempenho', 'OS')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="Tr" class="block text-sm font-medium text-gray-900">Meta de Tempo de Subida (Tr, s)</label>
+                                <input type="text" id="Tr" value="{{ Tr }}" oninput="enviarDados('desempenho', 'Tr')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-filtro" class="tab-content hidden">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">Filtro e Ruído</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <span class="block text-sm font-medium text-gray-900 mb-1">Filtro derivativo (τ_f)</span>
+                                <div class="flex items-center space-x-4">
+                                    <label class="inline-flex items-center text-sm text-gray-800">
+                                        <input type="radio" name="tau_f_mode" id="tau_f_mode_auto" value="auto" onclick="onTauFModeChange()" class="h-4 w-4 text-green-800 border-gray-300">
+                                        <span class="ml-2">Automático</span>
+                                    </label>
+                                    <label class="inline-flex items-center text-sm text-gray-800">
+                                        <input type="radio" name="tau_f_mode" id="tau_f_mode_manual" value="manual" onclick="onTauFModeChange()" class="h-4 w-4 text-green-800 border-gray-300">
+                                        <span class="ml-2">Manual</span>
+                                    </label>
+                                </div>
+                                <input type="text" id="tau_f" oninput="enviarDados('ganhos')" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm" placeholder="Constante de tempo τ_f (s)">
+                            </div>
+
+                            <div>
+                                <label for="sigma" class="block text-sm font-medium text-gray-900">Ruído de medição (σ)</label>
+                                <input type="text" id="sigma" oninput="enviarDados('ganhos')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm" placeholder="Desvio padrão do ruído">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 card p-6">
+            <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">Simulação: Resposta em Malha Fechada</h2>
+            
+            <p id="funcoes-display" class="text-center text-sm text-slate-800 font-mono mb-4">
+                <strong>G(s) =</strong> {{ funcao_transferencia_G_display }} <br> 
+                <strong>H(s) =</strong> {{ funcao_transferencia_H }}
+            </p>
+            
+            <div class="w-full">
+                <div class="py-4">
+                    <div>
+                        <img id='grafico-step' src="data:image/png;base64,{{ grafico_step }}" alt="Gráfico de Resposta ao Degrau" class="rounded-md border border-slate-200 w-full">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 border-t pt-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Configurações de Visualização</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="referencia" class="block text-sm font-medium text-gray-900">Referência</label>
+                        <input type="text" id="referencia" value="{{ referencia }}" oninput="enviarDados('visualizacao')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="tempo_simulacao" class="block text-sm font-medium text-gray-900">Tempo (s)</label>
+                        <input type="text" id="tempo_simulacao" value="{{ tempo_simulacao }}" oninput="enviarDados('visualizacao')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="y_max" class="block text-sm font-medium text-gray-900">Eixo Y (max)</label>
+                        <input type="text" id="y_max" value="{{ y_max }}" oninput="enviarDados('visualizacao')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                    </div>
+                </div>
+                
+                <div class="mt-4 grid grid-cols-2 gap-4">
+                    <button type="button" onclick="centralizarGrafico()" class="w-full text-sm font-medium text-green-800 hover:text-green-800 transition-colors">
+                        Ajustar Zoom (Automático)
+                    </button>
+                    <button type="button" onclick="recalcularPIDInicial()" class="w-full text-sm font-medium text-red-800 hover:text-red-800 transition-colors">
+                        Restaurar Ganhos Iniciais
+                    </button>
+                </div>
+             </div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="referencia_inicial" value="{{ referencia }}">
+
+<input type="hidden" id="G_parsable" value="{{ funcao_transferencia_G_parsable }}">
+<input type="hidden" id="G_display" value="{{ funcao_transferencia_G_display }}">
+
+<input type="hidden" id="Kp_float_inicial" value="{{ Kp_float }}">
+<input type="hidden" id="Ki_float_inicial" value="{{ Ki_float }}">
+<input type="hidden" id="Kd_float_inicial" value="{{ Kd_float }}">
+<input type="hidden" id="tau_f_inicial" value="{{ tau_f_display }}">
+<input type="hidden" id="sigma_inicial" value="{{ sigma_display }}">
+<input type="hidden" id="tau_f_mode_inicial" value="{{ tau_f_mode }}">
+
+<script>
+    let ultimoModoAtivo = 0; // 0 para ganhos, 1 para desempenho
+    let timeoutId; // ID do timeout para 'debouncing' (evitar requisições excessivas)
+    
+    // Variáveis globais para armazenar os ganhos de alta precisão
+    let current_Kp;
+    let current_Ki;
+    let current_Kd;
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // Inicializa o valor da referência
+        document.getElementById('referencia').value = document.getElementById('referencia_inicial').value;
+
+        // Inicializa as variáveis globais com os floats puros da carga da página (GET)
+        current_Kp = parseFloat(document.getElementById('Kp_float_inicial').value.replace(',', '.'));
+        current_Ki = parseFloat(document.getElementById('Ki_float_inicial').value.replace(',', '.'));
+        current_Kd = parseFloat(document.getElementById('Kd_float_inicial').value.replace(',', '.'));
+
+        // Inicializa tau_f e sigma, se disponíveis
+        const tauFInput = document.getElementById('tau_f');
+        const sigmaInput = document.getElementById('sigma');
+        const tauFInicialEl = document.getElementById('tau_f_inicial');
+        const sigmaInicialEl = document.getElementById('sigma_inicial');
+        const tauFModeInicialEl = document.getElementById('tau_f_mode_inicial');
+        const tauFRadioAuto = document.getElementById('tau_f_mode_auto');
+        const tauFRadioManual = document.getElementById('tau_f_mode_manual');
+
+        if (tauFInput && tauFInicialEl && tauFInicialEl.value !== '') {
+            tauFInput.value = tauFInicialEl.value;
+        }
+
+        if (sigmaInput && sigmaInicialEl && sigmaInicialEl.value !== '') {
+            sigmaInput.value = sigmaInicialEl.value;
+        }
+
+        // Define modo inicial do filtro (automático/manual)
+        let modoInicial = 'auto';
+        if (tauFModeInicialEl && tauFModeInicialEl.value) {
+            modoInicial = tauFModeInicialEl.value;
+        }
+    
+        if (tauFRadioAuto && tauFRadioManual && tauFInput) {
+            if (modoInicial === 'manual') {
+                tauFRadioManual.checked = true;
+                tauFInput.disabled = false;
+            } else {
+                tauFRadioAuto.checked = true;
+                tauFInput.disabled = true;
+            }
+        }
+    });
+
+
+    /**
+     * Trata a entrada de números, convertendo vírgula (padrão BR) para ponto (padrão JS/backend).
+     * @param {HTMLElement} input - O elemento input.
+     * @param {boolean} allowNegative - Permite valores negativos (default: false).
+     * @returns {number} - O valor numérico tratado.
+     */
+    function tratarInputNumerico(input, allowNegative = false) {
+        let valor = input.value.replace(/,/g, '.');
+        if (valor === '-') {
+             return 0; 
+        }
+        let floatVal = parseFloat(valor);
+        if (isNaN(floatVal)) {
+            return 0;
+        }
+        if (allowNegative) {
+            return floatVal;
+        }
+        return Math.max(0, floatVal);
+    }
+
+    /**
+     * Envia os dados para o backend (app.py) via Fetch API.
+     */
+    function enviarDados(tipo, fonte_ajuste = null) {
+        clearTimeout(timeoutId);
+        const delay = 1000; 
+
+        timeoutId = setTimeout(() => {
+            const modo = (tipo === 'ganhos') ? 0 :
+                         (tipo === 'desempenho') ? 1 : ultimoModoAtivo;
+            
+            const dados = {
+                modo: modo,
+                referencia: tratarInputNumerico(document.getElementById('referencia')),
+                tempo_simulacao: tratarInputNumerico(document.getElementById('tempo_simulacao')),
+                y_max: tratarInputNumerico(document.getElementById('y_max')),
+                centraliza: 0,
+                G_parsable: document.getElementById('G_parsable').value
+            };
+
+            // Leitura do filtro derivativo e do ruído de medição
+            let tau_f_mode = 'auto';
+            const tauFInput = document.getElementById('tau_f');
+            const sigmaInput = document.getElementById('sigma');
+            const tauFRadioAuto = document.getElementById('tau_f_mode_auto');
+            const tauFRadioManual = document.getElementById('tau_f_mode_manual');
+
+            if (tauFRadioManual && tauFRadioManual.checked) {
+                tau_f_mode = 'manual';
+            }
+
+            let tau_f_val = 0.0;
+            let sigma_val = 0.0;
+
+            if (tauFInput) {
+                tau_f_val = tratarInputNumerico(tauFInput);
+            }
+
+            if (sigmaInput) {
+                sigma_val = tratarInputNumerico(sigmaInput);
+            }
+
+            dados.tau_f_mode = tau_f_mode;
+            dados.tau_f_val = tau_f_val;
+            dados.sigma = sigma_val;
+
+            if (modo === 0) { // Ajuste Manual
+                // Lê das caixas de texto
+                dados.Kp = tratarInputNumerico(document.getElementById('Kp'), true);
+                dados.Ki = tratarInputNumerico(document.getElementById('Ki'), true);
+                dados.Kd = tratarInputNumerico(document.getElementById('Kd'), true);
+            } else if (modo == 1) { // Ajuste Assistido
+                dados.fonte_ajuste = fonte_ajuste;
+                dados.OS = tratarInputNumerico(document.getElementById('OS'));
+                dados.Tr = tratarInputNumerico(document.getElementById('Tr'));
+                
+                // Envia os ganhos de ALTA PRECISÃO que estão guardados nas
+                // variáveis globais, ignorando os valores arredondados das caixas de texto.
+                dados.Kp_atual = current_Kp;
+                dados.Ki_atual = current_Ki;
+                dados.Kd_atual = current_Kd;
+            }
+            
+            if (tipo === 'ganhos' || tipo === 'desempenho') {
+                ultimoModoAtivo = modo;
+            }
+            
+            showLoading();
+
+            fetch('/analise_controlador', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            })
+            .then(response => response.ok ? response.json() : Promise.reject('Erro de rede'))
+            .then(data => {
+                if (data.status === 'success') {
+                    atualizarUI(data); 
+                } else {
+                    console.error("Erro no servidor:", data.message);
+                    alert("Ocorreu um erro no servidor:\n" + data.message);
+                }
+            })
+            .catch(error => console.error("Erro na requisição:", error))
+            .finally(() => {
+                hideLoading();
+            });
+        }, delay); 
+    }
+
+    /**
+     * Função para o botão "Ajustar Zoom (Automático)".
+     */
+    function centralizarGrafico() {
+        const dados = {
+            modo: ultimoModoAtivo,
+            referencia: tratarInputNumerico(document.getElementById('referencia')),
+            tempo_simulacao: tratarInputNumerico(document.getElementById('tempo_simulacao')),
+            y_max: tratarInputNumerico(document.getElementById('y_max')),
+            centraliza: 1, 
+            G_parsable: document.getElementById('G_parsable').value
+        };
+
+        // Inclui também os parâmetros de filtro e ruído ao centralizar
+        let tau_f_mode = 'auto';
+        const tauFInput = document.getElementById('tau_f');
+        const sigmaInput = document.getElementById('sigma');
+        const tauFRadioAuto = document.getElementById('tau_f_mode_auto');
+        const tauFRadioManual = document.getElementById('tau_f_mode_manual');
+
+        if (tauFRadioManual && tauFRadioManual.checked) {
+            tau_f_mode = 'manual';
+        }
+
+        let tau_f_val = 0.0;
+        let sigma_val = 0.0;
+
+        if (tauFInput) {
+            tau_f_val = tratarInputNumerico(tauFInput);
+        }
+
+        if (sigmaInput) {
+            sigma_val = tratarInputNumerico(sigmaInput);
+        }
+
+        dados.tau_f_mode = tau_f_mode;
+        dados.tau_f_val = tau_f_val;
+        dados.sigma = sigma_val;
+
+        if (ultimoModoAtivo === 0) {
+            // Se o último foi ajuste manual, lê das caixas
+            dados.Kp = tratarInputNumerico(document.getElementById('Kp'), true);
+            dados.Ki = tratarInputNumerico(document.getElementById('Ki'), true);
+            dados.Kd = tratarInputNumerico(document.getElementById('Kd'), true);
+        } else {
+            // Se o último foi assistido, usa os de alta precisão
+            dados.modo = 0; // Força re-simulação
+            dados.Kp = current_Kp;
+            dados.Ki = current_Ki;
+            dados.Kd = current_Kd;
+        }
+
+        showLoading(); 
+
+        fetch('/analise_controlador', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                atualizarUI(data);
+            }
+        })
+        .catch(error => {
+            console.error("Erro ao centralizar:", error);
+        })
+        .finally(() => {
+            hideLoading(); 
+        });
+    }
+
+    /**
+     * Função para o botão "Restaurar Ganhos Iniciais".
+     */
+    function recalcularPIDInicial() {
+        showLoading();
+        window.location.reload();
+    }
+
+    /**
+     * Atualiza todos os elementos da interface com os dados recebidos do backend.
+     */
+    function atualizarUI(data) {
+        document.getElementById('grafico-step').src = `data:image/png;base64,${data.grafico_step}`;
+
+        // Atualiza métricas (strings formatadas)
+        document.getElementById('overshoot-percent').value = data.metricas.overshoot_percent;
+        document.getElementById('rise-time').value = data.metricas.rise_time;
+        document.getElementById('settling-time').value = data.metricas.settling_time;
+        document.getElementById('steady-error').value = data.metricas.steady_state_error;
+
+        // Atualiza os campos de texto com as strings formatadas (3 casas)
+        document.getElementById('Kp').value = data.ganhos.Kp_str;
+        document.getElementById('Ki').value = data.ganhos.Ki_str;
+        document.getElementById('Kd').value = data.ganhos.Kd_str;
+    
+        document.getElementById('OS').value = data.metricas.overshoot_percent;
+        document.getElementById('Tr').value = data.metricas.rise_time;
+    
+        // Atualiza as variáveis globais de alta precisão
+        current_Kp = data.ganhos.Kp_float;
+        current_Ki = data.ganhos.Ki_float;
+        current_Kd = data.ganhos.Kd_float;
+    
+        // Atualiza visualização (tempo e eixo Y)
+        if (data.visualizacao) {
+            document.getElementById('tempo_simulacao').value = data.visualizacao.tempo_simulacao;
+            document.getElementById('y_max').value = data.visualizacao.y_max;
+        }
+
+        // Atualiza filtro (tau_f) e ruído (sigma) vindos do backend
+        if (data.filtro_ruido) {
+            const tauFInput   = document.getElementById('tau_f');
+            const sigmaInput  = document.getElementById('sigma');
+            const radioAuto   = document.getElementById('tau_f_mode_auto');
+            const radioManual = document.getElementById('tau_f_mode_manual');
+
+            // Atualiza valor de tau_f sempre (auto ou manual)
+            if (tauFInput && typeof data.filtro_ruido.tau_f !== 'undefined') {
+                tauFInput.value = data.filtro_ruido.tau_f;
+            }
+
+            // Atualiza sigma se backend devolver (mantém sincronizado também)
+            if (sigmaInput && typeof data.filtro_ruido.sigma !== 'undefined') {
+                sigmaInput.value = data.filtro_ruido.sigma;
+            }
+
+            // Atualiza modo e habilita/desabilita o campo de tau_f
+            if (radioAuto && radioManual && tauFInput) {
+                const modo = data.filtro_ruido.tau_f_mode || 'auto';
+                if (modo === 'manual') {
+                    radioManual.checked = true;
+                    tauFInput.disabled = false;
+                } else {
+                    radioAuto.checked = true;
+                    tauFInput.disabled = true;
+                }
+            }
+        }
+
+        // Atualiza o display H(s) (string já vem formatada do backend)
+        const g_str = document.getElementById('G_display').value;
+        const h_str = `${data.ganhos_str.h_str}`; 
+        document.getElementById('funcoes-display').innerHTML = `
+            <strong>G(s) =</strong> ${g_str} <br> 
+            <strong>H(s) =</strong> ${h_str}
+        `;
+    }
+
+
+    /**
+     * Entra no modo manual de Tau_f
+     */
+    function onTauFModeChange() {
+        const tauFInput = document.getElementById('tau_f');
+        const radioAuto = document.getElementById('tau_f_mode_auto');
+        const radioManual = document.getElementById('tau_f_mode_manual');
+    
+        if (!tauFInput || !radioAuto || !radioManual) {
+            return;
+        }
+
+        if (radioManual.checked) {
+            tauFInput.disabled = false;
+        } else {
+            tauFInput.disabled = true;
+        }
+
+        // sempre que mudar o modo (auto/manual), já reenviamos os dados
+        enviarDados('ganhos');
+    }
+
+    function openTab(tabId, btnElement) {
+        // 1. Esconde todo o conteúdo das abas
+        var contents = document.getElementsByClassName('tab-content');
+        for (var i = 0; i < contents.length; i++) {
+            contents[i].classList.add('hidden');
+            contents[i].classList.remove('block');
+        }
+
+        // 2. Remove o estilo "ativo" de todos os botões
+        var buttons = document.getElementsByClassName('tab-btn');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.remove('border-green-800', 'text-green-800', 'border-b-2', 'bg-green-50');
+            buttons[i].classList.add('text-gray-500');
+        }
+
+        // 3. Mostra o conteúdo da aba clicada
+        document.getElementById(tabId).classList.remove('hidden');
+        document.getElementById(tabId).classList.add('block');
+
+        // 4. Adiciona estilo "ativo" ao botão clicado
+        btnElement.classList.remove('text-gray-500');
+        btnElement.classList.add('border-green-800', 'text-green-800', 'border-b-2', 'bg-green-50');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+
+{% block title %}Etapa 3: Projeto do Controlador{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-slate-800">Etapa 3: Projeto do Controlador H(s)</h1>
+        <p class="mt-2 text-slate-800">Com base na análise da G(s), foi projetado um controlador H(s) inicial.</p>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        <div class="lg:col-span-2 space-y-6">
+            
+            <div class="card p-6 border-l-4 border-green-800 bg-green-50">
+                <h3 class="text-xl font-bold text-slate-800 mb-3">Diagnóstico da Planta G(s)</h3>
+                <div class="space-y-1 text-sm text-slate-900">
+                    <p>{{ diagnostico_sintonia|safe }}</p>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Método de Sintonia Aplicado</h3>
+                <div class="space-y-2 text-sm text-slate-900 p-3 bg-slate-50 rounded-md border">
+                    <p>{{ calculo_sintonia|safe }}</p>
+                </div>
+            </div>
+            
+             <div class="card p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Etapa 4: Simulação e Sintonia Fina</h3>
+                 <p class="text-sm text-slate-800 -mt-2 mb-4">Os ganhos iniciais são um ponto de partida teórico. Prossiga para o dashboard de simulação interativa para o ajuste fino.</p>
+                 
+                 <form method="GET" action="/analise_controlador" class="space-y-4" onsubmit="showLoading()">
+                    <input type="hidden" name="G_parsable" value="{{ funcao_transferencia_G_parsable }}">
+                    <input type="hidden" name="G_display" value="{{ funcao_transferencia_G_display }}">
+                    <input type="hidden" name="referencia" value="{{ referencia }}">
+                    <input type="hidden" name="Kp" value="{{ Kp }}">
+                    <input type="hidden" name="Ki" value="{{ Ki }}">
+                    <input type="hidden" name="Kd" value="{{ Kd }}">
+
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-green-800 hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-800 transition-colors">
+                        Ir para Dashboard de Simulação &rarr;
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 card p-6">
+            <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">Análise do Projeto (Lugar das Raízes)</h2>
+            
+            <p id="funcoes-display" class="text-center text-sm text-slate-800 font-mono mb-4">
+                <strong>G(s) =</strong> {{ funcao_transferencia_G_display }} <br> 
+                <strong>H(s) =</strong> {{ funcao_transferencia_H }}
+            </p>
+            
+            <img id='grafico-projeto' src="data:image/png;base64,{{ grafico_projeto }}" alt="Gráfico de Análise do Projeto" class="rounded-md border border-slate-200 w-full">
+            
+            <p class="text-xs text-slate-800 mt-4 text-center">
+                Este gráfico mostra o LGR da sua planta G(s) e onde o controlador H(s) posicionou seus polos (X) e zeros (O) para estabilizar/controlar o sistema.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

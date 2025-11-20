@@ -1,0 +1,256 @@
+{% extends "layout.html" %}
+
+{% block title %}Guia de Uso{% endblock %}
+
+{% block content %}
+<div class="card max-w-5xl mx-auto p-8 sm:p-10">
+    
+    <!-- Cabeçalho -->
+    <div class="text-center mb-12">
+        <h1 class="text-3xl font-bold text-slate-800">Guia de Uso do PID-Analyzer</h1>
+        <p class="mt-4 text-lg text-slate-700 max-w-2xl mx-auto">
+            Este guia apresenta, de forma objetiva, como utilizar o sistema para modelar uma planta,
+            validar o modelo, gerar um controlador inicial e realizar a sintonia fina em ambiente simulado.
+        </p>
+    </div>
+
+    <article class="text-slate-800" style="text-align: justify;">
+
+        <!-- ========================================================= -->
+        <!-- ETAPA 1 ================================================== -->
+        <!-- ========================================================= -->
+
+        <h2 class="text-2xl font-bold mt-4 mb-4">Etapa 1 — Modelagem da Planta</h2>
+
+        <p class="mt-3 mb-6">
+            A modelagem é o primeiro passo do processo. Nesta etapa, o usuário informa a dinâmica
+            da planta <strong>G(s)</strong> por meio de dados experimentais ou diretamente pela
+            função de transferência. Ambas as abordagens são suportadas.
+        </p>
+
+        <!-- 1.1 Modelagem por dados -->
+        <h3 class="text-xl font-semibold mt-6 mb-3">1. Modelagem por Dados Experimentais</h3>
+
+        <p class="mt-2 mb-4">
+            Utilize esta opção quando você possui uma resposta ao degrau medida em malha aberta.
+            É necessário informar:
+        </p>
+
+        <ul class="list-disc list-inside space-y-2 mb-6">
+            <li><strong>Série de dados</strong> — valores medidos da saída, separados por espaço.</li>
+            <li><strong>Intervalo de amostragem</strong> — tempo entre medições sucessivas.</li>
+        </ul>
+
+        <div class="my-6">
+            <img src="{{ url_for('static', filename='tutorial_modelagem_dados.png') }}"
+                 alt="Exemplo de modelagem por dados experimentais"
+                 class="rounded-lg border border-slate-300 shadow-sm w-full">
+        </div>
+
+        <p class="mt-4 mb-8">
+            Após enviar os dados, o sistema ajusta automaticamente um modelo de baixa ordem que
+            represente a dinâmica observada.
+        </p>
+
+        <h4 class="text-lg font-semibold mt-6 mb-2">Erros comuns ao inserir dados</h4>
+        <ul class="list-disc list-inside space-y-1 mb-8">
+            <li>Usar vírgula e ponto misturados (ex.: <code>0,2 0,3 0.4</code>).</li>
+            <li>Informar um intervalo de amostragem incorreto, o que distorce a escala de tempo.</li>
+            <li>Copiar dados com quebras de linha irregulares ou colar valores sem separação adequada.</li>
+            <li>Fornecer dados extremamente ruidosos sem qualquer filtragem prévia.</li>
+        </ul>
+
+        <!-- 1.2 Modelagem por FT -->
+        <h3 class="text-xl font-semibold mt-10 mb-3">2. Modelagem por Função de Transferência</h3>
+
+        <p class="mt-2 mb-4">
+            Utilize esta opção quando o modelo matemático já é conhecido. A função deve ser escrita usando:
+        </p>
+
+        <ul class="list-disc list-inside space-y-2 mb-6">
+            <li>formato <code>(numerador)/(denominador)</code>;</li>
+            <li>variável <code>s</code>;</li>
+            <li>potências usando <code>^</code> (ex.: <code>s^2</code>).</li>
+        </ul>
+
+        <div class="my-6">
+            <img src="{{ url_for('static', filename='tutorial_modelagem_ft.png') }}"
+                 alt="Exemplo de modelagem por função de transferência"
+                 class="rounded-lg border border-slate-300 shadow-sm w-full">
+        </div>
+
+        <p class="mt-4 mb-4">
+            Exemplos corretos incluem: <code>1/(s+1)</code>, <code>10/(s^2+2*s+10)</code>.
+        </p>
+
+        <h4 class="text-lg font-semibold mt-4 mb-2">Cuidados ao escrever a função</h4>
+        <ul class="list-disc list-inside space-y-1 mb-8">
+            <li>Evite remover parênteses — por exemplo, escrever <code>10/s^2+2*s+10</code> muda completamente o significado matemático.</li>
+            <li>Confirme que todos os termos estão corretamente agrupados dentro do numerador e do denominador.</li>
+            <li>Evite espaços ou símbolos adicionais que não façam parte da expressão.</li>
+        </ul>
+
+        <p class="mt-4 mb-10">
+            Após preencher uma das opções, clique em <strong>“Validar Modelo da Planta”</strong> para prosseguir.
+        </p>
+
+        <hr class="my-12 border-slate-300">
+
+        <!-- ========================================================= -->
+        <!-- ETAPA 2 ================================================== -->
+        <!-- ========================================================= -->
+
+        <h2 class="text-2xl font-bold mt-4 mb-4">Etapa 2 — Validação do Modelo</h2>
+
+        <p class="mt-3 mb-6">
+            Após a modelagem, o sistema exibe a resposta simulada do modelo obtido. O objetivo
+            desta etapa é verificar se a dinâmica representada pelo modelo está coerente com o
+            comportamento do sistema real antes de prosseguir para o projeto do controlador.
+        </p>
+
+        <p class="mt-2 mb-4">
+            Este guia utiliza a validação baseada em <strong>dados experimentais</strong>, por ser a mais completa.
+            Nesse caso, o gráfico compara:
+        </p>
+
+        <ul class="list-disc list-inside space-y-2 mb-6">
+            <li><strong>Pontos medidos</strong> — valores reais coletados;</li>
+            <li><strong>Curva simulada</strong> — resposta do modelo ajustado.</li>
+        </ul>
+
+        <div class="my-6">
+            <img src="{{ url_for('static', filename='tutorial_validacao.png') }}"
+                 alt="Tela de validação do modelo estimado"
+                 class="rounded-lg border border-slate-300 shadow-sm w-full">
+        </div>
+
+        <p class="mt-4 mb-6">
+            Quando é utilizada uma função de transferência teórica, a validação exibirá apenas a
+            resposta simulada, o que é suficiente para confirmar a coerência matemática do modelo.
+        </p>
+
+        <p class="mt-2 mb-10">
+            Estando tudo correto, informe o <strong>setpoint</strong> e clique em
+            <strong>“Projetar Controlador H(s)”</strong>.
+        </p>
+
+        <hr class="my-12 border-slate-300">
+
+        <!-- ========================================================= -->
+        <!-- ETAPA 3 ================================================== -->
+        <!-- ========================================================= -->
+
+        <h2 class="text-2xl font-bold mt-4 mb-4">Etapa 3 — Projeto Automático do Controlador</h2>
+
+        <p class="mt-3 mb-6">
+            Com a planta validada, o sistema realiza o projeto inicial do controlador e apresenta
+            um conjunto de informações que orientam a etapa de sintonia fina.
+        </p>
+
+        <ul class="list-disc list-inside space-y-2 mb-6">
+            <li><strong>Diagnóstico da planta</strong> — informações sobre estabilidade e polos relevantes;</li>
+            <li><strong>Método de sintonia aplicado</strong> — escolhido com base no tipo de planta;</li>
+            <li><strong>Lugar das raízes</strong> — ilustração do posicionamento dos polos de malha fechada.</li>
+        </ul>
+
+        <div class="my-6">
+            <img src="{{ url_for('static', filename='tutorial_projeto.png') }}"
+                 alt="Tela de projeto automático do controlador"
+                 class="rounded-lg border border-slate-300 shadow-sm w-full">
+        </div>
+
+        <p class="mt-4 mb-10">
+            Esta etapa não exige ajustes. Clique em
+            <strong>“Ir para Dashboard de Simulação”</strong> para acessar a sintonia fina.
+        </p>
+
+        <hr class="my-12 border-slate-300">
+
+        <!-- ========================================================= -->
+        <!-- ETAPA 4 ================================================== -->
+        <!-- ========================================================= -->
+
+        <h2 class="text-2xl font-bold mt-4 mb-4">Etapa 4 — Dashboard de Simulação e Sintonia Fina</h2>
+
+        <p class="mt-3 mb-6">
+            O dashboard apresenta a resposta em malha fechada e permite ajustar os parâmetros do
+            controlador até atingir o comportamento desejado. Ele reúne, em uma única tela,
+            as métricas de desempenho, o gráfico da resposta e todas as ferramentas de ajuste.
+        </p>
+
+        <div class="my-8">
+            <img src="{{ url_for('static', filename='tutorial_dashboard_completo.png') }}"
+                 alt="Visão geral do dashboard de simulação e sintonia fina"
+                 class="rounded-lg border border-slate-300 shadow-sm w-full">
+        </div>
+
+        <h3 class="text-xl font-semibold mt-8 mb-3">Métricas apresentadas</h3>
+
+        <p class="mt-2 mb-4">
+            As métricas são atualizadas automaticamente a cada modificação nos ganhos e auxiliam na
+            avaliação do comportamento do sistema:
+        </p>
+
+        <ul class="list-disc list-inside space-y-2 mb-8">
+            <li><strong>Sobressinal (OS %)</strong> — ultrapassagem do valor de referência;</li>
+            <li><strong>Tempo de subida (Tr)</strong> — rapidez inicial da resposta;</li>
+            <li><strong>Tempo de acomodação (Ts)</strong> — tempo até a estabilização;</li>
+            <li><strong>Erro estacionário (Ess %)</strong> — diferença final entre saída e referência.</li>
+        </ul>
+
+        <h3 class="text-xl font-semibold mt-10 mb-3">Aba “Ajuste Manual”</h3>
+
+        <p class="mt-2 mb-6">
+            Permite alterar diretamente <strong>Kp</strong>, <strong>Ki</strong> e <strong>Kd</strong>.
+            Esta aba representa a forma clássica de sintonia e é normalmente suficiente para a
+            maioria dos ajustes práticos.
+        </p>
+
+        <h3 class="text-xl font-semibold mt-10 mb-3">Configurações de visualização</h3>
+
+        <p class="mt-2 mb-4">
+            Os campos de visualização afetam apenas a exibição da simulação, sem alterar o modelo ou o controlador:
+        </p>
+
+        <ul class="list-disc list-inside space-y-2 mb-8">
+            <li><strong>Referência</strong> — valor do degrau aplicado ao sistema;</li>
+            <li><strong>Tempo total</strong> — duração da simulação;</li>
+            <li><strong>Escala vertical (Y max)</strong> — limite superior do eixo vertical.</li>
+        </ul>
+
+        <p class="mt-2 mb-10">
+            O botão <strong>“Ajustar Zoom (Automático)”</strong> reposiciona o gráfico para uma visualização
+            mais clara da resposta atual.
+        </p>
+
+        <hr class="my-12 border-slate-300">
+
+        <!-- ========================================================= -->
+        <!-- DICAS FINAIS ============================================= -->
+        <!-- ========================================================= -->
+
+        <h2 class="text-2xl font-bold mt-4 mb-4">Dicas de Uso</h2>
+
+        <ul class="list-disc list-inside space-y-2 mb-4">
+            <li>A sintonia inicial gerada pelo sistema é um ponto de partida, não o resultado final.</li>
+            <li>Faça ajustes pequenos e observe o comportamento completo do sistema antes de alterar novamente.</li>
+            <li>Ao implementar na planta real, reduza os ganhos para aumentar a segurança e observar o comportamento inicial.</li>
+            <li>Use a aba de filtros quando houver ruído significativo na medição, especialmente em sistemas com termo derivativo ativo.</li>
+        </ul>
+
+        <p class="mt-4 mb-2">
+            Lembre-se de que a simulação é baseada em um modelo linearizado. Na planta real, efeitos
+            como atrito, saturação e atrasos podem exigir novos ajustes nos ganhos.
+        </p>
+
+    </article>
+
+    <div class="text-center mt-12">
+        <a href="/modelagem"
+           class="bg-green-800 text-white hover:bg-green-900 font-medium px-6 py-3 rounded-lg shadow-sm text-lg transition-colors">
+            Iniciar Modelagem
+        </a>
+    </div>
+
+</div>
+{% endblock %}

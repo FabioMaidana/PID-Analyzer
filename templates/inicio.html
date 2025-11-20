@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}Início - Sistema de Análise{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="text-4xl font-bold text-slate-800 tracking-tight sm:text-5xl">
+        Bem-vindo ao Sistema de Análise de Controle
+    </h1>
+    <p class="mt-6 text-lg leading-8 text-slate-800 max-w-2xl mx-auto">
+        Uma ferramenta interativa para modelar sistemas, analisá-los e projetar controladores PID.
+    </p>
+</div>
+
+<div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+    <a href="/tutorial" class="card p-8 block text-center">
+        <div class="inline-block bg-green-100 text-green-800 p-4 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+        </div>
+        <h2 class="mt-4 text-2xl font-bold text-slate-800">Guia de Uso</h2>
+        <p class="mt-2 text-slate-800">
+            Entenda a metodologia, o fluxo de trabalho e a fundamentação teórica da ferramenta.
+        </p>
+    </a>
+
+    <a href="/modelagem" class="card p-8 block text-center">
+        <div class="inline-block bg-green-100 text-green-800 p-4 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+            </svg>
+        </div>
+        <h2 class="mt-4 text-2xl font-bold text-slate-800">Iniciar Modelagem</h2>
+        <p class="mt-2 text-slate-800">
+            Comece agora a modelar sua planta G(s) e projetar seu controlador H(s).
+        </p>
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+{% block title %}Etapa 2: Validação (Experimental){% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-slate-800">Etapa 2: Validação do Modelo (Experimental)</h1>
+        <p class="mt-2 text-slate-800">O sistema foi otimizado a partir dos dados. Verifique a aderência do modelo G(s) estimado.</p>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div class="lg:col-span-1 space-y-6">
+            <div class="card p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">Parâmetros do Modelo</h2>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <p class="font-medium text-gray-800">Modelo G(s) Estimado</p>
+                        <p class="font-mono text-green-800 bg-green-50 p-2 rounded-md mt-1"><strong>G(s) =</strong> {{ funcao_display }}</p>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-800">Dados Originais (Coletados)</p>
+                        <p class="text-gray-900 break-words">{{ dados }}</p>
+                    </div>
+                </div>
+            </div>
+             <div class="card p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">Etapa 3: Projetar Controlador</h2>
+                 <form method="GET" action="/projeto_controlador" class="space-y-4" onsubmit="showLoading()">
+                    <input type="hidden" name="G_parsable" value="{{ funcao_parsable }}">
+                    <input type="hidden" name="G_display" value="{{ funcao_display }}">
+                    
+                    <div>
+                        <label for="referencia" class="block text-sm font-medium text-gray-900">Valor de Referência (Setpoint)</label>
+                        <input type="text" id="referencia" name="referencia" value="1,0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-800 focus:ring-green-800 sm:text-sm">
+                    </div>
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-800 hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-800 transition-colors">
+                        Projetar Controlador H(s)
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 card p-6">
+             <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">Validação: Dados Originais (pontos) vs. Modelo Estimado (linha)</h2>
+            <img src="data:image/png;base64,{{ grafico }}" alt="Gráfico de Resposta" class="rounded-md border border-slate-200">
+        </div>
+    </div>
+</div>
+{% endblock %}

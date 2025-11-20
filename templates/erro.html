@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}Erro na Análise{% endblock %}
+
+{% block content %}
+<div class="card max-w-2xl mx-auto text-center p-8">
+    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
+        <svg class="h-10 w-10 text-red-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+        </svg>
+    </div>
+    <h1 class="mt-6 text-2xl font-bold text-slate-800">Ocorreu um Erro na Análise</h1>
+    <div class="mt-4 bg-red-50 text-red-800 p-4 rounded-md text-left">
+        <p class="font-bold mb-2">Mensagem Técnica:</p>
+        <p class="font-mono text-sm">{{ mensagem }}</p>
+    </div>
+    <div class="mt-8">
+        <a href="/modelagem" class="text-green-800 hover:text-green-800 font-medium">
+            &larr; Voltar para a Modelagem
+        </a>
+    </div>
+</div>
+{% endblock %}
