@@ -219,8 +219,12 @@ def projeto_controlador():
             # Define uma planta padrão caso G_str_parsable seja nulo
             G = control.TransferFunction([1], [1, 1]) 
 
-        # Obter ganhos e diagnóstico
+        # 1. Obter ganhos iniciais e diagnósticos
         Kp, Ki, Kd, diagnostico_sintonia, calculo_sintonia = obter_pid_inicial(G)
+        
+        # 2. CÁLCULO DO FILTRO (Implementação Final)
+        # Calculamos aqui uma única vez para garantir consistência entre Gráfico e Simulação
+        tau_f = estimar_tau_f_auto(Kp, Ki, Kd)
         
         fig_proj, ax_proj = plt.subplots(figsize=(10, 6))
         legend_handles = []
@@ -234,24 +238,19 @@ def projeto_controlador():
 
         # Desenha manualmente os elementos da Planta G(s) (azul, zorder 2 e 3)
         if rlist is not None and rlist.shape[0] > 0:
-            # Plotar o *primeiro* ramo com label
             lgr_plot = ax_proj.plot(rlist.real[0, :], rlist.imag[0, :], 'b-', 
                                    linewidth=2.0, zorder=2,
                                    label='Caminho LGR (Planta G(s))')
             
-            # Plotar o resto dos ramos sem label
             for i in range(1, rlist.shape[0]):
                 ax_proj.plot(rlist.real[i, :], rlist.imag[i, :], 'b-', 
                                    linewidth=2.0, zorder=2)
             
-            # Adicionar o handle da linha real à legenda
             legend_handles.append(lgr_plot[0])
         elif rlist is not None:
-            # Fallback para caso estranho de rlist vazio
             lgr_handle = plt.Line2D([], [], color='blue', linestyle='-', linewidth=2.0,
                                     label='Caminho LGR (Planta G(s))')
             legend_handles.append(lgr_handle)
-
 
         poles_G = G.poles()
         if poles_G is not None and len(poles_G) > 0:
@@ -268,28 +267,54 @@ def projeto_controlador():
                                          label='Zeros da Planta (G(s))', zorder=3)
             legend_handles.append(zero_g_handle[0])
 
-        # Desenha manualmente os elementos do Controlador H(s) (vermelho, zorder 3)
+        # 3. LÓGICA DO H(s) COM FILTRO
         zeros_H = []
         polo_H_coords = []
+        h_str_display = ""
         
-        if Ki > 1e-3: 
-            polo_H_coords.append(0+0j) # Polo na origem
+        # Verifica se existe ação integral (Polo na origem)
+        if Ki > 1e-9: 
+            polo_H_coords.append(0+0j) 
             
-        # Checa o tipo de controlador (PID, PD, PI) para achar os zeros corretos
-        if Kd > 1e-3 and Ki > 1e-3: # É PID
-            zeros_H = np.roots([Kd, Kp, Ki])     # Zeros de Kd*s^2 + Kp*s + Ki
-        elif Kd > 1e-3: # É PD (Ki é zero)
-            zeros_H = np.roots([Kd, Kp])         # Zero de Kd*s + Kp
-        elif Ki > 1e-3: # É PI (Kd é zero)
-            zeros_H = np.roots([Kp, Ki])         # Zero de Kp*s + Ki
-        # Se for P-puro, zeros_H continua []
+        # Verifica se aplicamos a lógica do filtro (Derivativo presente + Filtro válido)
+        if Kd > 1e-9 and tau_f > 1e-9:
+            # Adiciona o Polo do Filtro (X vermelho extra)
+            polo_filtro = -1.0 / tau_f
+            polo_H_coords.append(polo_filtro + 0j)
 
+            # Recalcula Zeros considerando a equação completa com filtro:
+            # H(s) = ( (Kd + Kp*tau)*s^2 + (Kp + Ki*tau)*s + Ki ) / ( s(1+tau*s) )
+            a = Kd + Kp * tau_f
+            b = Kp + Ki * tau_f
+            c = Ki
+            
+            zeros_H = np.roots([a, b, c])
+            
+            # String formatada mostrando o filtro
+            h_str_display = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s/(1 + {tau_f:.3f}s)".replace('.',',')
+
+        else:
+            # Lógica Clássica (Sem Filtro significativo ou apenas PI/P)
+            if Kd > 1e-3 and Ki > 1e-3: # PID Ideal
+                zeros_H = np.roots([Kd, Kp, Ki])
+                h_str_display = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s".replace('.',',')
+            elif Kd > 1e-3: # PD Ideal
+                zeros_H = np.roots([Kd, Kp])
+                h_str_display = f"{Kp:.3f} + {Kd:.3f}s".replace('.',',')
+            elif Ki > 1e-3: # PI
+                zeros_H = np.roots([Kp, Ki])
+                h_str_display = f"{Kp:.3f} + {Ki:.3f}/s".replace('.',',')
+            else: # P Puro
+                h_str_display = f"{Kp:.3f}".replace('.',',')
+
+        # Plotagem dos Polos do Controlador
         if polo_H_coords:
             polo_H_handle = ax_proj.plot(np.real(polo_H_coords), np.imag(polo_H_coords), 
                                          'rx', markersize=12, markeredgewidth=3.0,
-                                          label='Polo do Controlador (H(s))', zorder=3) 
+                                          label='Polos do Controlador (H(s))', zorder=3) 
             legend_handles.append(polo_H_handle[0])
 
+        # Plotagem dos Zeros do Controlador
         if len(zeros_H) > 0:
             zero_H_handle = ax_proj.plot(zeros_H.real, zeros_H.imag, 'ro', 
                                          markersize=10, markeredgewidth=2.5, 
@@ -302,7 +327,7 @@ def projeto_controlador():
         ax_proj.set_xlim(lim_x)
         ax_proj.set_ylim(lim_y)
         
-        # Finaliza o gráfico (título, labels, grid)
+        # Finaliza o gráfico
         ax_proj.set_xlabel('Eixo Real')
         ax_proj.set_ylabel('Eixo Imaginário')
         ax_proj.legend(handles=legend_handles, loc='best')
@@ -316,12 +341,12 @@ def projeto_controlador():
                             calculo_sintonia=calculo_sintonia,
                             funcao_transferencia_G_parsable=G_str_parsable,
                             funcao_transferencia_G_display=G_str_display,
-                            # Formata a string H(s) para usar vírgula
-                            funcao_transferencia_H = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s".replace('.',','),
+                            funcao_transferencia_H = h_str_display,
                             grafico_projeto=grafico_projeto_b64,
                             Kp=Kp,
                             Ki=Ki,
                             Kd=Kd,
+                            tau_f=tau_f, 
                             referencia=referencia)
 
     except Exception as e:
@@ -331,14 +356,16 @@ def projeto_controlador():
 @app.route('/analise_controlador', methods=['GET', 'POST'])
 def analise_controlador():
     try:
+        # Variáveis padrão
         G_str_parsable = None
         G_str_display = None
         tau_f_user = None
         sigma = 0.0
         tau_f_mode = 'auto'
         
-        # --- Lógica GET (Recebe Kp, Ki, Kd da página de projeto) ---
+        # --- Lógica GET (Carrega a página vindo do Projeto) ---
         if request.method == 'GET':
+            # 1. Recebe os dados da URL
             referencia = float(request.args.get('referencia'))
             G_str_parsable = request.args.get('G_parsable') 
             G_str_display = request.args.get('G_display')
@@ -347,16 +374,19 @@ def analise_controlador():
             Ki = float(request.args.get('Ki'))
             Kd = float(request.args.get('Kd'))
 
-            # Permite override via URL: ?tau_f=0 (clássico) ou ?tau_f=0.03 (filtrado)
-            tau_f_param = request.args.get('tau_f', None)
-            if tau_f_param is not None:
-                tau_f_user = float(tau_f_param)
-                tau_f_mode = 'manual'
-            else:
-                tau_f_user = None
-                tau_f_mode = 'auto'
+            # 2. LÓGICA DO FILTRO
+            tau_f_param = request.args.get('tau_f')
             
-            # Ruído lido da URL (padrão 0.00)
+            if tau_f_param and tau_f_param != 'None':
+                try:
+                    tau_f_user = float(tau_f_param)
+                except ValueError:
+                    tau_f_user = estimar_tau_f_auto(Kp, Ki, Kd)
+            else:
+                # Fallback: Só calcula se não veio nada na URL
+                tau_f_user = estimar_tau_f_auto(Kp, Ki, Kd)
+
+            # Ruído (Padrão 0.00)
             sigma = float(request.args.get('sigma', 0.00))
             
             if G_str_parsable:
@@ -368,39 +398,36 @@ def analise_controlador():
             centraliza = 1
             diagnostico_sintonia = "<strong>Etapa 4: Sintonia Fina</strong><br>Use os controles abaixo para refinar o projeto inicial."
 
-        # --- Lógica POST (Executada nas atualizações via Fetch/AJAX) ---
+        # --- Lógica POST (Atualizações via AJAX/Dashboard) ---
         elif request.method == 'POST':
             dados = request.get_json()
             G_str_parsable = dados.get('G_parsable') 
             referencia = float(dados.get('referencia'))
             modo = int(dados.get('modo'))
 
-            # Lê modo do filtro, tau_f e sigma vindos do formulário (AJAX)
+            # Lê configurações de filtro e ruído
             tau_f_mode = dados.get('tau_f_mode', 'auto')
             tau_f_val_raw = dados.get('tau_f_val', None)
             sigma = float(dados.get('sigma', 0.0))
 
-            tau_f_user = None
+            # Lógica de Tau Manual vs Auto no POST
             if tau_f_mode == 'manual' and tau_f_val_raw is not None:
                 try:
-                    # aceita vírgula ou ponto e permite 0 (PID clássico sem filtro)
                     tau_f_user = float(str(tau_f_val_raw).replace(',', '.'))
                 except ValueError:
-                    tau_f_user = 0.0  # fallback seguro
+                    tau_f_user = 0.0
             else:
-                # modo automático -> tau_f calculado depois na heurística
-                tau_f_user = None
-                tau_f_mode = 'auto'
+                # Se for auto, deixamos None para ser calculado dinamicamente no build_H
+                tau_f_user = None 
             
-            if modo == 0:  # Ajuste por Ganhos (Kp, Ki, Kd)
+            if modo == 0:  # Ajuste Manual de Ganhos
                 Kp = float(dados.get('Kp'))
                 Ki = float(dados.get('Ki'))
                 Kd = float(dados.get('Kd'))
                 
-            elif modo == 1:  # Ajuste por Desempenho (Sintonia Fina Assistida)
+            elif modo == 1:  # Ajuste Assistido (Sintonia Fina)
                 fonte_ajuste = dados.get('fonte_ajuste')
                 
-                # Pega os ganhos de ALTA PRECISÃO que o JS guardou
                 Kp_atual = float(dados.get('Kp_atual'))
                 Ki_atual = float(dados.get('Ki_atual'))
                 Kd_atual = float(dados.get('Kd_atual'))
@@ -412,6 +439,9 @@ def analise_controlador():
                     G = parse_transfer_function(G_str_parsable)
                 else:
                     G = control.TransferFunction([1], [1, 1])
+                
+                # --- Lógica de Otimização Restaurada (Idêntica ao seu original) ---
+                metodo_otimizador = None
                 
                 # Lógica para ajuste de Sobressinal (OS -> Kd)
                 if fonte_ajuste == 'OS':
@@ -425,7 +455,7 @@ def analise_controlador():
                     Kp_fixo, Ki_fixo, Kd_fixo = None, Ki_atual, Kd_atual
                     chute_inicial, meta_tipo = [Kp_atual], 'Tr'
                     
-                    # 1. Sistema atual
+                    # 1. Sistema atual para base de BW
                     H_atual_filtrado = build_H_filtrado(Kp_atual, Ki_atual, Kd_atual)
                     T_atual = control.minreal((G * H_atual_filtrado) / (1 + G * H_atual_filtrado))
                     
@@ -444,10 +474,8 @@ def analise_controlador():
                         bw_atual = 3.0 / tr_atual if tr_atual > 0.1 else 1.0 
                     
                     # 3. BW alvo
-                    if Tr_desejado < 0.01:
-                        Tr_desejado = 0.01
-                    if tr_atual < 0.01:
-                        tr_atual = Tr_desejado
+                    if Tr_desejado < 0.01: Tr_desejado = 0.01
+                    if tr_atual < 0.01: tr_atual = Tr_desejado
                     
                     bw_alvo = bw_atual * (tr_atual / Tr_desejado)
                     meta_valor = bw_alvo
@@ -457,7 +485,6 @@ def analise_controlador():
                 
                 else:
                     Kp, Ki, Kd = Kp_atual, Ki_atual, Kd_atual 
-                    metodo_otimizador = None
 
                 if metodo_otimizador:
                     if metodo_otimizador == 'L-BFGS-B':
@@ -490,21 +517,23 @@ def analise_controlador():
             y_vis = float(dados.get('y_max'))
             centraliza = int(dados.get('centraliza'))
 
-        # --- Lógica Comum (Executada para GET e POST) ---
-        if request.method == 'POST' and modo == 0:
-            if G_str_parsable:
-                G = parse_transfer_function(G_str_parsable)
-            else:
-                G = control.TransferFunction([1], [1, 1]) 
+        # --- Lógica Comum (Simulação e Resposta) ---
         
-        # Constrói o controlador H(s) com filtro derivativo dinâmico
+        # 1. Garante objeto G
+        if request.method == 'POST' and modo == 0:
+             if G_str_parsable: G = parse_transfer_function(G_str_parsable)
+             else: G = control.TransferFunction([1], [1, 1])
+
+        # 2. Constrói H(s)
+        # Se veio do GET, usa o tau_f que veio do Projeto.
+        # Se veio do POST (auto), build_H recalcula baseado nos novos ganhos.
         H = build_H_filtrado(Kp, Ki, Kd, tau_f=tau_f_user)
-            
-        # Monta a malha fechada T(s)
+        
+        # 3. Malha Fechada T(s)
         G_loop = control.minreal(G * H)
         T = control.minreal(G_loop / (1 + G_loop))
         
-        # Roda simulação longa para cálculo das MÉTRICAS
+        # 4. Simulação Longa para Métricas
         ts_base = 100.0
         if request.method == 'GET':
             try:
@@ -522,7 +551,7 @@ def analise_controlador():
         y_m = y_m * referencia
         metricas = calcular_metricas_desempenho(t_m, y_m, referencia)
         
-        # Ajuste da visualização (Zoom automático)
+        # 5. Ajuste de Zoom
         if centraliza == 1:
             tempo_vis = metricas['settling_time'] * 2.2
             y_vis = (referencia + metricas['overshoot_val']) * 1.1
@@ -533,12 +562,12 @@ def analise_controlador():
             if y_vis <= 0.1:
                 y_vis = referencia * 1.5 
         
-        # Roda simulação final para o GRÁFICO de Resposta ao Degrau
+        # 6. Simulação Visual Final
         t_vis = np.linspace(0, tempo_vis, 1000)
         t_v, y_v = control.step_response(T, T=t_vis)
         y_v = y_v * referencia
 
-        # Injeta ruído de medição
+        # Injeção de Ruído
         if request.method == 'GET':
             seed = int(request.args.get('seed', 42))
         else:
@@ -555,7 +584,7 @@ def analise_controlador():
         else:
             _, y_n = resp
 
-        # Saída total com ruído de medição
+        # Saída total
         y_v = y_v + y_n
 
         fig_step, ax_step = plt.subplots(figsize=(10, 5))
@@ -570,24 +599,24 @@ def analise_controlador():
         ax_step.grid(True, alpha=0.3)
         grafico_step_b64 = plot_to_base64(fig_step)
 
-        # --- Respostas (HTML para GET, JSON para POST) ---
-        if request.method == 'GET':
+        # Preparação para Retorno (Display correto do Filtro)
+        # Precisamos saber qual tau_f foi realmente usado para mostrar na tela/JSON
+        if tau_f_user is None:
+            tau_disp_val = estimar_tau_f_auto(Kp, Ki, Kd)
+        else:
+            tau_disp_val = tau_f_user
 
-            # Monta string de H(s) coerente com o tau_f realmente usado (GET)
-            if tau_f_user is None:
-                tau_f_disp = estimar_tau_f_auto(Kp, Ki, Kd)
-            else:
-                tau_f_disp = tau_f_user
-
-            if tau_f_disp is not None and tau_f_disp > 0:
-                h_str = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s/(1 + {tau_f_disp:.3f}s)"
-                tau_f_display = f"{tau_f_disp:.4f}".replace('.', ',')
-            else:
-                h_str = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s"
-                tau_f_display = ""
+        if tau_disp_val is not None and tau_disp_val > 1e-4:
+            h_str = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s/(1 + {tau_disp_val:.3f}s)"
+            tau_f_display_str = f"{tau_disp_val:.4f}".replace('.', ',')
+        else:
+            h_str = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s"
+            tau_f_display_str = ""
             
-            sigma_display = f"{sigma:.3f}".replace('.', ',')
+        sigma_display_str = f"{sigma:.3f}".replace('.', ',')
 
+        # --- Retorno GET (HTML) ---
+        if request.method == 'GET':
             return render_template(
                 'analise_controlador.html',
                 diagnostico_sintonia=diagnostico_sintonia,
@@ -596,15 +625,12 @@ def analise_controlador():
                 funcao_transferencia_H=h_str.replace('.',','),
 
                 grafico_step=grafico_step_b64,
-                # Strings formatadas para os text boxes
                 Kp_str=f"{Kp:.3f}".replace('.',','),
                 Ki_str=f"{Ki:.3f}".replace('.',','),
                 Kd_str=f"{Kd:.3f}".replace('.',','),
-                # Floats puros para o JS guardar
                 Kp_float=Kp,
                 Ki_float=Ki,
                 Kd_float=Kd,
-                # O resto dos dados
                 referencia=f"{referencia}".replace('.',','),
                 tempo_simulacao=f"{tempo_vis:.1f}".replace('.',','),
                 y_max=f"{y_vis:.1f}".replace('.',','),
@@ -615,24 +641,13 @@ def analise_controlador():
                 modo=modo,
                 OS=f"{metricas['overshoot_percent']:.2f}".replace('.',','), 
                 Tr=f"{metricas['rise_time']:.3f}".replace('.',','),
-                tau_f_display=tau_f_display,
-                sigma_display=sigma_display,
+                tau_f_display=tau_f_display_str,
+                sigma_display=sigma_display_str,
                 tau_f_mode=tau_f_mode
             )
                                 
+        # --- Retorno POST (JSON) ---
         elif request.method == 'POST':
-            
-            # Monta string H(s) coerente para o POST (usa o mesmo tau_f que foi usado)
-            if tau_f_user is None:
-                tau_f_disp_json = estimar_tau_f_auto(Kp, Ki, Kd)
-            else:
-                tau_f_disp_json = tau_f_user
-
-            if tau_f_disp_json is not None and tau_f_disp_json > 0:
-                h_str_json = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s/(1 + {tau_f_disp_json:.3f}s)"
-            else:
-                h_str_json = f"{Kp:.3f} + {Ki:.3f}/s + {Kd:.3f}s"
-
             return jsonify({
                 'status': 'success',
                 'grafico_step': grafico_step_b64,
@@ -644,26 +659,24 @@ def analise_controlador():
                     'steady_state_error': f"{metricas['steady_state_error']:.3f}".replace('.',',')
                 },
                 'ganhos': {
-                    # Strings formatadas
                     'Kp_str': f"{Kp:.3f}".replace('.',','),
                     'Ki_str': f"{Ki:.3f}".replace('.',','),
                     'Kd_str': f"{Kd:.3f}".replace('.',','),
-                    # Floats puros
                     'Kp_float': Kp,
                     'Ki_float': Ki,
                     'Kd_float': Kd
                 },
                 'ganhos_str': {
-                    'h_str': h_str_json.replace('.',',')
+                    'h_str': h_str.replace('.',',')
                 },
                 'visualizacao': {
                     'tempo_simulacao': f"{tempo_vis:.1f}".replace('.',','),
                     'y_max': f"{y_vis:.1f}".replace('.',',')
                 },
                 'filtro_ruido': {
-                    'tau_f': f"{tau_f_disp_json:.4f}".replace('.',',') if tau_f_disp_json is not None else "",
+                    'tau_f': tau_f_display_str,
                     'tau_f_mode': tau_f_mode,
-                    'sigma': f"{sigma:.3f}".replace('.',',')
+                    'sigma': sigma_display_str
                 }
             })
     except Exception as e:
